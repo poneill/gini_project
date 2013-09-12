@@ -11,3 +11,5 @@
 
 # It is necessary to use tabs to indent.
 
+results/coevolved_motifs/estremo_motifs/estremo_motifs.txt: data/estremo_motifs/alpha_sweep_motifs.py src/generate_coevolved_motifs/parse_estremo_motifs.py
+	python src/generate_coevolved_motifs/parse_estremo_motifs.py results/coevolved_motifs/estremo_motifs/estremo_motifs.txt
