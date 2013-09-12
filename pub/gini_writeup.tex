@@ -1,0 +1,111 @@
+\documentclass{article}
+\usepackage{amsmath,graphicx,authblk,fullpage,setspace}
+\title{Information Content Disparity in Columns of Transcription Factor Binding Motifs}
+\author[1]{Patrick O'Neill}
+\author[1]{Ivan Erill}
+\affil[1]{Department of Biological Sciences, UMBC}
+\begin{document}
+\maketitle{}
+\begin{abstract}
+  Transcription factors bind degenerate DNA motifs, and
+  aligned collections binding sites show high disparities in the
+  degree of conservation of the preferred base per position.  This is
+  conventionally thought to be explained by the biochemistry of the
+  TF-DNA binding event, which requires only a few specific base
+  contacts over the 10-20bp binding footprint.  This asymmetry induces
+  strong selection at directly contacted bases, and weak selection at
+  others.  In this work, we show that unusually high disparity of
+  information content by position is a generic property of binding
+  sites which co-evolve with a transcription factor's DNA-binding
+  domain.  We consider a variety of biological motifs as well as
+  synthetic motifs co-evolved with recognition models \textit{in
+    silico}, and contrast them with binding motifs of equivalent
+  dimension and information content which were sampled from processes
+  that do not involve a recognition model.  We find that position-wise
+  disparity of information content is almost always higher for motifs
+  which have co-evolved in the presence of a recognition model.
+\end{abstract}
+\section{Introduction}
+\subsection{Background boilerplate about TFs}
+Transcription factors can bind specifically to multiple nucleotide
+sequences.  This fact has broad implications for the study of gene
+regulation: the degeneracy of the recognition process allows rapid
+evolution of binding sites [xxx cite], fine-tuning of regulatory
+activity [xxx cite], and complex concentration-dependent control
+strategies [xxx cite activator-repressor, overlapping half-site
+papers].  A full understanding of the mechanisms by which binding
+sites are recognized and selected is therefore a central aim in
+computational biology.
+
+\subsection{Position-wide Information Content}
+
+It was observed early on by Schneider \textit{et al}. [xxx cite] that
+aligned collections of binding site could be profitably characterized
+in information-theoretic terms.  Assuming positional independence, the
+prior entropy of an $L$-mer of genomic DNA is given by:
+
+\begin{equation}
+  \label{eq:prior_entropy}
+  H_{prior} = -L\cdot\sum_{\alpha\in \{A,C,G,T\}}p(\alpha)\log_2(p(\alpha))
+\end{equation}
+where $p(\cdot)$ denotes the genomic frequency of each base.  From an
+aligned collection of binding sites for some fixed TF, it is possible
+to estimate the frequencies $f_i(\alpha)$ of observing base $\alpha$
+in position $i$ of a binding site.  Under the assumption of positional
+independence granted before, the posterior entropy of a DNA sequence
+given that the TF binds it is then:
+
+\begin{equation}
+  \label{eq:post_entropy}
+  H_{post} = -\sum_{i=1}^L\sum_{\alpha\in \{A,C,G,T\}}f_i(\alpha)\log_2(f_i(\alpha)).
+\end{equation}
+
+The difference $H_{prior}-H_{post}$ is the information content (IC) of
+the motif, and is now part of the canonical representation of nucleic
+acid motifs.\cite{schneider90},\cite{weblogo}
+
+\subsection{Biochemical explanation}
+\subsection{Epistatic explanation}
+\section{Materials and Methods}
+\subsection{Motifs with Recognizers}
+\subsubsection{Biological Motifs}
+Collections of binding sites in \textit{Escherichia coli} were
+obtained from the PRODORIC database.  Every collection with at least
+ten experimentally verified sites were retained for analysis.
+\subsubsection{ESTReMo}
+As previously described in [XXX], the ESTReMo platform is a
+computational model of the co-evolution of transcription factor
+binding domains and their cognate binding sites.  We performed
+simulations under [XXX the following conditions] and collected the
+binding sites of the fittest organism in the last generation of
+simulation if the fitness was within 1\% of the attainable maximum.
+
+\subsubsection{MCMC with Recognizer}
+Motifs were also generated through MCMC sampling of a motif-recognizer pair under [xxx the following conditions.]
+\subsection{Motifs without Recognizers}
+To provide a null distribution of motifs with a given IC, motifs were
+generated according to two distinct processes: greedy sampling and MCMC.
+\subsubsection{Greedy Sampling}
+In greedy sampling, a collection of random binding sites was
+initialized, and proposed mutations were randomly applied.  Mutations
+were accepted when they increased the total information content of
+columns of the motif.  This process was iterated until the information
+content of the motif was within $\epsilon=xxx$ of the desired
+information content.
+
+\subsubsection{Simulated annealing}
+Sampling of motifs with a given IC was also conducted through
+simulated annealing.  Motifs were initialized randomly and candidate
+mutations were proposed as above.  Mutations were accepted with
+probability $\min\{1,\exp\left(\frac{IC(M)-IC(M^*)}{T}\right)\}$ where
+$M,M^*$ are respectively the current and proposed states of the chain
+and $T$ is a decreasing temparature parameter.
+
+\section{Results}
+\section{Discussion}
+\section{Conclusion}
+\doublespacing
+ \newpage
+\bibliography{../refs/bibliography}{}
+\bibliographystyle{abbrv} \newpage
+\end{document}
