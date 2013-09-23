@@ -36,12 +36,7 @@ def score(matrix,seq,ns=True):
         return log(exp(-beta*specific_binding) + exp(-beta*ns_binding_const))/-beta
     else:
         return specific_binding            
-            
-    if ns: #takes twice as long as no ns in profiling
-        return log(exp(-beta*specific_binding) + exp(-beta*ns_binding_const))/-beta
-    else:
-        return specific_binding
-
+    
 def matrix_mean(matrix):
     """Return the mean score for the energy matrix"""
     return sum(map(mean,matrix))
@@ -252,6 +247,7 @@ def mh_experiment(text="",filename=None):
     maybesave(filename)
     
 def ic_vs_gini_scatterplot_exp(trials=100,stopping_crit=1,filename=None):
+    # redo this properly!
     matrix = [[0,0,0,0] for i in range(L)]
     motif = [random_site(L) for i in range(n)]
     # xs = mh(lambda(matrix,motif):exp(-sse_optimized(matrix,motif)),
@@ -283,12 +279,16 @@ def ic_vs_gini_scatterplot_exp(trials=100,stopping_crit=1,filename=None):
     greedy_ics = [motif_ic(motif) for motif in greedy_motifs]
     greedy_ginis = [motif_gini(motif) for motif in greedy_motifs]
     
-    plt.scatter(ics,ginis,color='b')
-    plt.scatter(sa_ics,sa_ginis,color='r')
-    plt.scatter(greedy_ics,greedy_ginis,color='g')
+    plt.scatter(ics,ginis,color='b',label="Systems")
+    plt.scatter(sa_ics,sa_ginis,color='r',label="MCMC")
+    plt.scatter(greedy_ics,greedy_ginis,color='g',label="Greedy")
     print "Systems vs. SA motifs:",wilcoxon(ginis,sa_ginis)
     print "Systems vs. greedy motifs:",wilcoxon(ginis,greedy_ginis)
     print "Greedy vs. sa motifs:",wilcoxon(sa_ginis,greedy_ginis)
+    # Systems vs. SA motifs: (75677.0, 2.1175931461637028e-81)
+    # Systems vs. greedy motifs: (78734.0, 1.2196302463732947e-78)
+    # Greedy vs. sa motifs: (247043.0, 0.72555385752004398)
+
     maybesave(filename)
     
 print "loaded energy_matrix_analysis"
@@ -313,8 +313,11 @@ def mr_pairs_have_less_mi_exp(filename=None):
     control_motifs = [sa_motif_with_desired_ic(ic,0.1,n,L) for ic in verbose_gen(ics)]
     mis = map(total_motif_mi,motifs)
     control_mis = map(total_motif_mi,control_motifs)
-    plt.scatter(mis,sa_mis)
+    plt.scatter(mis,control_mis)
     plt.xlabel("M-R System Mutual Information (bits)")
     plt.ylabel("Annealed Motif Mutual Information (bits)")
-    plt.plot([0,20],[0,20])
+    plt.plot([0,5],[0,5])
     maybesave(filename)
+    #mannwhitneyu(mis,control_mis) -> (47673.0, 1.2864021557444156e-64)
+    return mis,control_mis
+

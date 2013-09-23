@@ -1,18 +1,28 @@
 \documentclass{article}
 \usepackage{amsmath,graphicx,authblk,fullpage,setspace}
-\title{Information Content Disparity in Columns of Transcription Factor Binding Motifs}
+\usepackage{algorithm2e}
+\renewcommand{\KwData}{\textbf{Input: }}
+\renewcommand{\KwResult}{\textbf{Output: }}
+\renewcommand{\P}{\mathrm{P}}
+\title{Information Content Disparity in Positions of Transcription Factor Binding Motifs}
 \author[1]{Patrick O'Neill}
+\author[2]{Robert Forder}
 \author[1]{Ivan Erill}
 \affil[1]{Department of Biological Sciences, UMBC}
+\affil[2]{Department of Mathematics and Statistics, UMBC}
 \begin{document}
 \maketitle{}
+\begin{center}
+  \textit{A manuscript to Bioinformatics}
+\end{center}
+
 \begin{abstract}
   Transcription factors bind degenerate DNA motifs, and
   aligned collections binding sites show high disparities in the
   degree of conservation of the preferred base per position.  This is
   conventionally thought to be explained by the biochemistry of the
   TF-DNA binding event, which requires only a few specific base
-  contacts over the 10-20bp binding footprint.  This asymmetry induces
+  contacts over the 10-20 bp binding footprint.  This asymmetry induces
   strong selection at directly contacted bases, and weak selection at
   others.  In this work, we show that unusually high disparity of
   information content by position is a generic property of binding
@@ -22,90 +32,505 @@
     silico}, and contrast them with binding motifs of equivalent
   dimension and information content which were sampled from processes
   that do not involve a recognition model.  We find that position-wise
-  disparity of information content is almost always higher for motifs
+  disparity of information content is consistently higher for motifs
   which have co-evolved in the presence of a recognition model.
 \end{abstract}
+\doublespacing
 \section{Introduction}
-\subsection{Background boilerplate about TFs}
+\subsection{Background}
 Transcription factors can bind specifically to multiple nucleotide
 sequences.  This fact has broad implications for the study of gene
 regulation: the degeneracy of the recognition process allows rapid
-evolution of binding sites [xxx cite], fine-tuning of regulatory
-activity [xxx cite], and complex concentration-dependent control
-strategies [xxx cite activator-repressor, overlapping half-site
-papers].  A full understanding of the mechanisms by which binding
-sites are recognized and selected is therefore a central aim in
-computational biology.
+evolution of binding sites \cite{berg04}, fine-tuning of regulatory
+activity \cite{babu03},\cite{dekel05}, and complex
+concentration-dependent control strategies \cite{hamilton88}.  A full
+understanding of the mechanisms by which binding sites are recognized
+and selected is therefore a central aim in computational biology.
 
-\subsection{Position-wide Information Content}
+\subsection{Positional Information Content}
 
-It was observed early on by Schneider \textit{et al}. [xxx cite] that
-aligned collections of binding site could be profitably characterized
-in information-theoretic terms.  Assuming positional independence, the
+It was observed early on by Schneider \textit{et al}.\cite{schneider86}that
+aligned collections of binding sites, which we will call
+\textit{motifs}\footnote{In conventional usage, DNA motifs are ``short, recurring patterns in DNA that are presumed to have a biological function''.
+  \cite{dhaeseleer06}.  Here we advocate an essentially
+  \textit{Fregean} view of motifs in which the motif is to be
+  identified with the set of sites which instantiate it.  The reader
+  should feel free to substitute `collection of aligned binding sites'
+  for `motif' throughout.}, could be profitably characterized in
+information-theoretic terms.  Assuming positional independence, the
 prior entropy of an $L$-mer of genomic DNA is given by:
 
 \begin{equation}
   \label{eq:prior_entropy}
-  H_{prior} = -L\cdot\sum_{\alpha\in \{A,C,G,T\}}p(\alpha)\log_2(p(\alpha))
+  H_{prior} = -L\cdot\sum_{b\in \{A,C,G,T\}}p(b)\log_2(p(b))
 \end{equation}
-where $p(\cdot)$ denotes the genomic frequency of each base.  From an
+where $p(b)$ denotes the genomic frequency of base $b$.  From an
 aligned collection of binding sites for some fixed TF, it is possible
-to estimate the frequencies $f_i(\alpha)$ of observing base $\alpha$
+to estimate the frequencies $f_i(b)$ of observing base $b$
 in position $i$ of a binding site.  Under the assumption of positional
 independence granted before, the posterior entropy of a DNA sequence
 given that the TF binds it is then:
 
 \begin{equation}
   \label{eq:post_entropy}
-  H_{post} = -\sum_{i=1}^L\sum_{\alpha\in \{A,C,G,T\}}f_i(\alpha)\log_2(f_i(\alpha)).
+  H_{post} = -\sum_{i=1}^L\sum_{b\in \{A,C,G,T\}}f_i(b)\log_2(f_i(b)).
 \end{equation}
 
 The difference $H_{prior}-H_{post}$ is the information content (IC) of
 the motif, and is now part of the canonical representation of nucleic
-acid motifs.\cite{schneider90},\cite{weblogo}
+acid motifs \cite{weblogo},\cite{schneider90}.
 
-\subsection{Biochemical explanation}
-\subsection{Epistatic explanation}
+One striking feature of transcription factor binding motifs is the
+disparity of information content between positions: often
+a few positions will be almost fully conserved, whereas others appear
+to be in free variation.  Shown for illustration in
+Fig. \ref{fig:lexa_binding_motif} is the LexA binding motif in
+\textit{Escherichia coli}, which contains six strongly conserved
+positions and ten positions near free variation (excepting a slight
+preference for A-T richness).
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.5]{../results/fig/lexa.pdf}
+  \caption{LexA binding motif in Escherichia coli}
+  \label{fig:lexa_binding_motif}
+\end{figure}
+
+The LexA binding motif is broadly representative of bacterial
+transcription factors, but in one way it is highly
+\textit{un}representative of the set of all motifs with equivalent
+dimension and information content. Namely, the information in
+biological motifs is much more strongly concentrated in a few
+positions than would be expected by chance, in a sense that we will
+soon make rigorous.  The aim of this paper is to explore the causes of
+this phenomenon.
+
+
+\subsection{Biochemical and Bioinformatic explanations}
+One might consider the disparity of conservation of preferred base
+already accounted for by the biochemistry of the TF-DNA interaction.
+During binding, key amino acid residues in the recognition domain of
+the transcription factor form hydrogen bonds with specific cognate
+bases in the binding site, with negligible contributions from
+neighboring bases \cite{ebright84}. In particular, prokaryotic TFs
+tend to form homodimeric complexes consisting of two recognition
+domains separated by a spacer region which rarely contributes
+specifically to the free energy of binding.  In most cases, therefore,
+bases which form hydrogen bonds with the TF recognition domain are
+under much stronger selection than bases which do not, inducing a
+greater degree of conservation at the former positions.
+
+While this explanation is incontestable from a molecular standpoint, it
+does not explain why transcription factors have evolved to assume
+their current form.  In this paper we consider instead the hypothesis
+that the disparity of conservation is due to the dynamics of the
+search problem that the TF must solve as it binds to functional sites
+and avoids binding to non-functional sites.  This hypothesis leads to
+the following predictions: (1) disparity should be higher in motifs
+that solve a recognition task than in otherwise equivalent motifs that
+do not; (2) this disparity should not depend on the biochemistry of
+the binding domain, and should be reproducible in computational models
+which lack explicit biochemistry; (3) the disparity should also appear
+in the motifs of monomeric eukaryotic transcription factors, where the
+spacer argument cannot apply.
+
 \section{Materials and Methods}
 \subsection{Motifs with Recognizers}
 \subsubsection{Biological Motifs}
 Collections of binding sites in \textit{Escherichia coli} were
-obtained from the PRODORIC database.  Every collection with at least
-ten experimentally verified sites were retained for analysis.
+obtained from the PRODORIC database \cite{prodoric03}.  Every
+collection with at least ten experimentally verified sites was
+retained for analysis.  Binding sites in \textit{Drosophila
+  melanogaster} were taken as given in Tomovic and Oakeley's
+hand-curation of the JASPAR database \cite{tomovic07},\cite{jaspar}.
 \subsubsection{ESTReMo}
-As previously described in [XXX], the ESTReMo platform is a
-computational model of the co-evolution of transcription factor
-binding domains and their cognate binding sites.  We performed
-simulations under [XXX the following conditions] and collected the
-binding sites of the fittest organism in the last generation of
-simulation if the fitness was within 1\% of the attainable maximum.
+The ESTReMo platform is a computational model of the co-evolution of
+transcription factor binding domains and their cognate binding sites.
+The simulation evolves binding sites and transcription factor binding
+domains, modeled as neural networks whose weights are controlled by a
+genetic algorithm, in a genetic algorithm where fitness is
+proportional to the aggregate difference between target and actual
+promoter activity over an entire regulon.  We performed simulations
+under default conditions, but varying the total target occupancy from
+0.04 to 0.96.  We collected for analysis the binding sites of the
+fittest organism in the last generation of each simulation if the
+fitness was within 1\% of the attainable maximum.
 
 \subsubsection{MCMC with Recognizer}
-Motifs were also generated through MCMC sampling of a motif-recognizer pair under [xxx the following conditions.]
-\subsection{Motifs without Recognizers}
-To provide a null distribution of motifs with a given IC, motifs were
-generated according to two distinct processes: greedy sampling and MCMC.
-\subsubsection{Greedy Sampling}
-In greedy sampling, a collection of random binding sites was
-initialized, and proposed mutations were randomly applied.  Mutations
-were accepted when they increased the total information content of
-columns of the motif.  This process was iterated until the information
-content of the motif was within $\epsilon=xxx$ of the desired
-information content.
+\label{sec:mcmc_with_recognizer}
+Because the ESTReMo platform achieves a high degree biophysical
+realism, its simulations can be computationally intensive.  To this
+end, we developed a reduced model focused on the phenomena of
+interest: TF/TFBS co-evolution on a fitness landscape determined by
+binding site occupancies.  In this section we present this model and
+its implementation.
 
-\subsubsection{Simulated annealing}
-Sampling of motifs with a given IC was also conducted through
-simulated annealing.  Motifs were initialized randomly and candidate
-mutations were proposed as above.  Mutations were accepted with
-probability $\min\{1,\exp\left(\frac{IC(M)-IC(M^*)}{T}\right)\}$ where
-$M,M^*$ are respectively the current and proposed states of the chain
-and $T$ is a decreasing temparature parameter.
+We consider a TF modeled by an energy matrix $E$, such that the free
+energy of binding specifically to an $L$-mer $S$ is given by:
+
+\begin{equation}
+  \label{eq:site_scoring}
+  \epsilon_{s}(S) = \sum_{i=1}^L\epsilon_i(S_i) = \sum_{i=1}^L\sum_{j=1}^4E_{ij}[S_i=j].
+\end{equation}
+
+We assume there exist a fixed number $n$ of functional binding sites
+of length $L$.  For simplicity, we consider the case of a single copy
+of the TF within the cell whose probability of being unbound in the
+cytoplasm, averaged over the lifetime of the protein, is negligible.
+The occupancy of the $k$th binding site is then:
+
+\begin{equation}
+  \label{eq:occupancy}
+  P(s_k \mathrm{\ is\ bound}) = \frac{e^{-\beta\epsilon(S_k)}}{Z}
+\end{equation}
+
+where $Z = \sum_{k=1}^Ge^{-\beta\epsilon(S_k)}$ is the partition
+function, and $\beta = 1/(k_BT)$.  Evaluating the partition function term-by-term would both
+require an explicit representation of the genomic background and
+create a computational bottleneck in the evolutionary simulation.
+Instead, we approximate $Z$ by its expectation, assuming independence
+of sites and positions within sites in the background:
+
+\begin{equation}
+  <Z> = G\prod_{i=1}^L\sum_{b\in\{A,C,G,T\}}\P(b)e^{-\beta(\epsilon_i(b))}
+\end{equation}
+
+reducing the computation from $\mathcal{O}(G)$ to $\mathcal{O}(L)$ and
+eliminating the requirement of an explicit background.  A motif and an
+energy matrix jointly comprise an $ME-$system. The full derivation is
+given in Appendix \ref{sec:appendix}.
+
+Suppose now that the fitness-maximizing occupancy for the $j$th site
+is $\alpha_j$.  Define:
+
+\begin{equation}
+  \label{eq:sse}
+  SSE(M,E;\vec\alpha) = \sum_{S_j}(\P(S_j) - \alpha_j)^2
+\end{equation}
+
+and define a family of probability distributions over the set of all
+$ME-$systems with fixed dimension $n\times w$, genome size $G$ and
+target occupancies $\vec\alpha$ be given by:
+\begin{equation}
+  \label{eq:me_fitness}
+  f_\gamma(M,E) = \frac{e^{-\gamma SSE(M,E)}}{Z}
+\end{equation}
+where $Z$ is a normalization constant [xxx unrelated to the partition
+function defined earlier...] and $\gamma$ is a tuning parameter.
+
+Given these preliminaries, we can sample from $f_\gamma$ via the
+Metropolis-Hastings algorithm.  It only remains then to define a
+proposal kernel $Q((M',E')|(M,E))$.  Let us first define a procedure
+for proposing energy matrices given the current energy matrix.
+
+\begin{algorithm}[H]
+  \SetLine
+  \KwData{$E$, an energy matrix of dimensions $4\times L$}
+  
+  \KwResult{a motif $E^*$ differing from $E$ at exactly one weight}
+  
+  $E^{*} \leftarrow E$
+
+   $i\leftarrow$ random([0,4))
+
+   $j\leftarrow$ random([0,L))
+   
+   $w\leftarrow E_{ij}$
+
+   $\xi \leftarrow \mathcal{N}(0,1)$
+
+   $E^{*}_{ij} \leftarrow w + \xi$ 
+
+   \Return $E^*$
+   \caption{$Q_E$}
+   \label{alg:mutate_energy_matrix}
+\end{algorithm}
+
+Then we may define the transition kernel as follows:
+
+\begin{equation}
+  \label{eq:transition_kernel}
+  Q((M',E')|(M,E)) =
+  \begin{cases}
+    Q_M(M,E),& p\\
+    (M,Q_E(E)),& 1-p\\
+  \end{cases}
+\end{equation}
+
+The parameter $p$ can be considered as controlling the relative
+mutation rates of the motif and energy matrix.  However, since the
+long run frequencies of each $ME$-system depend only on the
+probability density $f_\gamma$ and not upon the details of the proposal
+kernel $Q$, we need not specify a value of $p$, and in practice we set
+$p=1/2$.
+
+\subsection{Motifs without Recognizers}
+To provide a null distribution for comparison, we wish to sample from
+a uniform distribution over the set of all motifs containing $n$ sites
+of width $w$, having information content $c\pm\eta$.  Since there
+is no known algorithm for sampling uniformly from such a set, we
+present two distinct algorithms for generating motifs belonging to the
+set and compare their summary statistics.
+
+\subsubsection{Greedy Sampling}
+Given a number of binding sites $\mathit{n}$, a
+binding width length $\mathit{w}$, desired information content
+$\mathit{c}$ and error tolerance $\mathit{\eta}$, we describe an
+algorithm for sampling from the set of motifs of dimension $n\times w$
+with information content $c\pm \eta$.
+
+Let us first define a procedure for mutating a motif, called $Q_M$:
+
+\begin{algorithm}[H]
+  \SetLine
+  \KwData{$M$, a motif of dimensions $n\times w$}
+  
+  \KwResult{a motif $M^*$ differing from $M$ at exactly one base}
+  
+  $M^{*} \leftarrow M$
+
+   $i\leftarrow$ random([0,n))
+
+   $j\leftarrow$ random([0,w))
+   
+   $b\leftarrow M_{ij}$
+
+   $b^*\leftarrow$ random($\{A,C,G,T\}\setminus\{b\}$)
+
+   $M^{prop}_{ij} \leftarrow b^*$ 
+
+   \Return $M^*$
+
+   \caption{$Q_M$}
+   \label{alg:mutate_motif}
+\end{algorithm}
+
+Then we may describe the algorithm for greedy sampling:
+
+\begin{algorithm}[H]
+ \SetLine
+ \KwData{$n,w,c,\eta$}
+
+ \KwResult{a motif $M$ of dimension $n\times w$ such that $c - \eta \leq IC(M)\leq c + \eta$}
+
+ \For{$i \in [0,n)$}
+ {\For{$j \in [0,w)$}
+   {$M_{ij}\leftarrow$ random(\{A,C,G,T\})}
+ }
+ 
+ \While{$\mathbf{not\ } c - \eta \leq IC(M)\leq c + \eta$}{
+   $M^{prop} \leftarrow Q_M(M)$
+
+   \If{$|IC(M^{prop}) - c| < |IC(M) - c|$}
+   {$M\leftarrow M^{prop}$}
+ }
+  \Return{$M$}
+ \caption{Greedy Sampling}
+ \label{alg:greedy}
+\end{algorithm}
+
+\subsubsection{MCMC}
+
+Sampling of motifs with a given IC was also conducted via the
+Metropolis-Hastings algorithm.  We wish to sample from a uniform
+distribution over the set of all motifs with information content
+within $\eta = 0.1$ bits of the desired information content $c$.  The
+pmf for this distribution is as follows:
+
+\begin{equation}
+  \label{eq:uniform}
+  f(M) =  \begin{cases}
+    1/N, & c - \eta \leq IC(M) \leq c + \eta\\
+    0, & \mathrm{otherwise}
+  \end{cases}
+\end{equation}
+
+where $N$ is the number of motifs satisfying the first condition.  The
+idea is to approximate the true probability mass function $f$ with the
+following probability mass function:
+
+\begin{equation}
+  \label{eq:approx_uniform}
+  \hat f_\alpha(M) = \frac{e^{-\alpha |IC(M)-c|}}{Z}
+\end{equation}
+
+where $\alpha$ is a tuning parameter controlling the approximation,
+and $Z$ is the normalization constant.  The $\hat f_\alpha$ family of
+distributions naturally suggests an algorithm for drawing motifs which
+meet the IC criterion, by iterating a Markov Chain whose stationary
+distribution is $\hat f_\alpha$ and selecting the first sampled motif
+with an acceptable IC. 
+
+This algorithm is described more fully in the following pseudo-code: 
+
+\begin{algorithm}[H]
+ \SetLine
+ \KwData{$n,w,c,\eta,\alpha$}
+
+ \KwResult{a motif $M$ of dimension $n\times w$ such that $c - \eta \leq IC(M)\leq c + \eta$}
+
+ \For{$i \in [0,n)$}
+ {\For{$j \in [0,w)$}
+   {$M_{ij}\leftarrow$ random(\{A,C,G,T\})}
+ }
+ 
+ \While{$\mathbf{not\ } c - \eta \leq IC(M)\leq c + \eta$}{
+   $M^{prop} \leftarrow Q_M(M)$
+
+   $r \leftarrow \mathrm{random}(0,1)$
+   
+   $p \leftarrow \frac{f_\alpha(M^{prop})}{f_\alpha(M)}$
+
+   \If{$r < p$}
+   {$M\leftarrow M^{prop}$}   
+ }
+ \Return{$M$}
+ \caption{Metropolis-Hastings Sampling}
+ \label{alg:mh_motif}
+\end{algorithm}
+
+By choosing a suitable value of $\alpha$, the sampling procedure can
+be made efficient.  Empirical studies suggest that for typical values
+of $n$,$w$ $c$ and $\eta$ (\textit{e.g.} $n=16$,$w=10$ $c=10$ and
+$\eta =0.1$), $\alpha\sim 10$ gives good results.
+
+%In fact, there appears to be a phase transition:
+\subsection{Gini Coefficients}
+The Gini coefficient is a measure of inequality or disparity in a
+population.  Defined geometrically as the area between the identity
+function and the Lorenz curve, it can be computed efficiently by the formula:
+
+\begin{equation}
+  \label{eq:gini}
+  G = \frac{\sum_{i,j}^n|x_i - x_j|}{2n^2\mu},
+\end{equation}
+where $\mu = <X>$.\cite{dixon87}.  We will slightly abuse notation by
+referring to `the Gini coefficient of a motif' when we mean the Gini
+coefficient of its position-wise information content values.
 
 \section{Results}
+
+In Fig. \ref{fig:ecoli_gini_comparison} we first compute Gini
+coefficients in 27 motifs in \textit{Escherichia coli}.  For each
+motif we generate an ensemble of matched control motifs of equivalent
+dimension and information content ($\pm 0.1 bits$) and plot their
+distribution of Gini coefficients in the corresponding barplots.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=.5]{../results/fig/biological_gini_comparison.png}
+  \caption{Gini coefficients of biological motifs vs. random controls}
+  \label{fig:ecoli_gini_comparison}
+\end{figure}
+
+In Fig. \ref{fig:drosophila_gini_comparison} we compute Gini coefficients
+for 109 motifs in Drosophila taken from the JASPAR
+database\cite{jaspar} along with those of random controls as before.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=.5]{../results/fig/drosophila_motifs_vs_random_ensembles.png}
+  \caption{Gini coefficients of Drosophila motifs vs. random controls}
+  \label{fig:drosophila_gini_comparison}
+\end{figure}
+
+In Fig. \ref{fig:estremo_gini_comparison} we compute Gini coefficients for
+19 motifs taken from evolutionary simulations conducted on the ESTReMo
+platform along with those of random controls.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=.5]{../results/fig/synthetic_gini_comparison.png}
+  \caption{Gini coefficients of ESTReMo motifs vs. random controls}
+  \label{fig:estremo_gini_comparison}
+\end{figure}
+
+In Fig. \ref{fig:sa_motifs_vs_gini_comparison} we compute Gini
+coefficients for 20 motifs obtained by optimizing $ME-$systems through
+simulated annealing, along with those of random controls.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=.5]{../results/fig/sa_motifs_vs_gini_comparison.png}
+  \caption{Gini coefficients of $ME$-system motifs vs. random controls}
+  \label{fig:sa_motifs_vs_gini_comparison}
+\end{figure}
+
 \section{Discussion}
-\section{Conclusion}
-\doublespacing
+% While explanation is incontestable from a molecular standpoint, it
+% does not explain why transcription factors have evolved to assume
+% their current form.  In this paper we consider instead the hypothesis
+% that the disparity of conservation is due to the dynamics of the
+% search problem that the TF must solve as it binds to functional sites
+% and avoids binding to non-functional sites.  
+
+We initially suggested that the pronounced disparities in binding
+motifs may be due to the dynamics of the search problem, rather than
+to pure biochemical considerations.  This claim is supported primarily
+by the observation that disparities in biological motifs are
+consistently greater than those in ensembles of control motifs sampled
+from the set of motifs of equivalent dimension and information
+content.  This finding is reinforced by its reproducibility in
+artificial motifs: binding sites evolved \textit{in silico} within
+computational evolutionary simulations of a transcriptional regulatory
+network exhibit the same pronounced disparities in information content
+among positions, even when the binding domain is modeled as a linear
+energy matrix, obviating the usual biochemical explanation.
+Furthermore, the phenomenon is reproducible and independent of the sampling
+mechanism; it appears not to significantly matter whether motifs were
+drawn from biology, evolutionary simulation or a generic optimization
+process.  Finally, the recognition-task explanation successfully
+predicts the disparities present in monomeric TFs, which the
+biochemical model cannot readily account for.
+
+Although the phenomenon is robust, much remains to be done in order to
+elucidate the causes of the information content disparity that arises
+in the process of solving the recognition problem.  Nevertheless, we
+can envision several immediate applications of this result, such as
+rational design of regulon-scale transcriptional regulatory networks
+or the possible incorporation of the IC Gini coefficient as an
+informative prior in motif discovery algorithms.
+
+
+\begin{table}[ht]
+  \centering
+  \begin{tabular}{ l | r }
+    \hline                        
+    $N$ &  number of binding sites \\
+    $L$ &  length of binding site \\
+    $G$ &  length of genome \\
+    $S$ &  site of length $L$ \\
+    $S_i$ &  base at position $i$ of $S$ \\
+    $i$ & index into positions of site\\
+    $b$ & variable ranging over nucleotide alphabet\\
+    $k$ & index into positions of genome\\
+    $E$ & Energy matrix\\
+    $E_{ib}$ & Free energy of binding from base $j$ at position $i$\\
+    $\beta$ & inverse temperature\\
+    $\epsilon(S)$ & free energy of binding for site $S$\\
+    $c$ & desired information content\\
+    $\eta$ & error tolerance for information content\\
+    \hline  
+  \end{tabular}
+  
+  \caption{Variables and Parameters}
+\label{tab:notation}
+\end{table}
+
  \newpage
-\bibliography{../refs/bibliography}{}
+\section{Appendix}
+\label{sec:appendix}
+Here we give the full derivation of the identity claimed in Section \ref{sec:mcmc_with_recognizer}
+\begin{align*}
+  <Z> =& <\sum_{k=1}^Ge^{-\beta\epsilon(S_k)}>\\
+  =& \sum_{k=1}^G<e^{-\beta\epsilon(S)}>\\
+  =& G<e^{-\beta\epsilon(S)}>\\
+  =& G<e^{-\beta(\sum_{i=1}^L\epsilon_i(S_i))}>\\
+  =& G<\prod_{i=1}^Le^{-\beta(\epsilon_i(S_i))}>\\
+=& G\prod_{i=1}^L<e^{-\beta(\epsilon_i(S_i))}>\\
+=& G\prod_{i=1}^L\sum_{b\in\{A,C,G,T\}}\P(b)e^{-\beta(\epsilon_i(b))}\\
+\end{align*}
+
+\bibliography{refs/bibliography}{}
 \bibliographystyle{abbrv} \newpage
 \end{document}

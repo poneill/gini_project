@@ -1,8 +1,12 @@
 from matplotlib import pyplot as plt
 from utils import *
 from math import log
-from entropy import *
 from alpha_sweep import *
+import sys
+sys.path.append("generate_coevolved_motifs")
+sys.path.append("generate_coevolved_motifs/estremo_files")
+from motifs import *
+from estremo_utils import *
 from Organism import Organism
 
 epsilon = 10**-10
@@ -153,6 +157,16 @@ def gini_motif_real_data_exp():
     from motifs import *
     real_motifs = [getattr(Escherichia_coli,tf_name)
                    for tf_name in Escherichia_coli.tfs]
+    replicates = 100
+    controls = [[motif_gini(control_motif(motif,epsilon=0.1,verbose=False))
+                 for __ in verbose_gen(xrange(replicates))]
+                for motif in verbose_gen(real_motifs)]
+    return real_motifs,controls
+
+def gini_motif_drosophila_exp():
+    from motifs import *
+    real_motifs = [getattr(Drosophila_melanogaster,tf_name)
+                   for tf_name in Drosophila_melanogaster.tfs]
     replicates = 100
     controls = [[motif_gini(control_motif(motif,epsilon=0.1,verbose=False))
                  for __ in verbose_gen(xrange(replicates))]

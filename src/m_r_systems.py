@@ -10,7 +10,22 @@ Output: An M-R system whose SSE is less than epsilon.
 import random
 from utils import product,random_site,anneal,mh,show,mutate_motif
 from math import exp
-from energy_matrix_analysis import score,beta
+from matplotlib import rc
+
+beta = 1.61
+
+def score(matrix,seq,ns=True):
+    """Score a sequence with a motif."""
+    base_dict = {'A':0,'C':1,'G':2,'T':3}
+    #specific_binding = sum([row[base_dict[b]] for row,b in zip(matrix,seq)])
+    specific_binding = 0
+    for i in xrange(len(matrix)):        
+        specific_binding += matrix[i][base_dict[seq[i]]]
+    if ns:
+        return log(exp(-beta*specific_binding) + exp(-beta*ns_binding_const))/-beta
+    else:
+        return specific_binding            
+
 
 ns_binding=False #non-specific binding is false
 
@@ -66,42 +81,61 @@ def sse(matrix,motif,alphas,G,n):
     Zb = Z_background(matrix,G)
     site_propensities = [exp(-beta*score(matrix,site,ns=ns_binding))
                          for site in motif]
-    Z = Zb + sum(site_propensities)
+    Z= Zb + sum(site_propensities)
     ps = [site_prop/Z for site_prop in site_propensities]
     return sum([(p-alpha)**2 for p,alpha in zip(ps,alphas)])
 
 def mr_system(alphas,init_system=None,G=100000.0,n=16,L=10,
-              sse_epsilon=0.0001,use_annealing=False,proposal=propose,scale=1000):
+              sse_epsilon=0.0001,use_annealing=False,proposal=propose,scale=1000,
+              iterations=10000):
     if init_system is None:
         matrix = [[0,0,0,0] for i in range(L)]
         motif = [random_site(L) for i in range(n)]
     else:
         matrix,motif = init_system
-    scaled_sse = lambda(matrix,motif):(sse(matrix,motif,alphas,G,n))*scale
+    scaled_sse = lambda(matrix,motif):exp((sse(matrix,motif,alphas,G,n))*-scale)
     algorithm = anneal if use_annealing else mh
     if use_annealing:
         return anneal(scaled_sse,
                       lambda(matrix,motif):proposal(matrix,motif),
                       (matrix,motif),
-                      iterations=500000,
+                      iterations=iterations,
                       stopping_crit = sse_epsilon*scale,return_trajectory=False)
     else:
         return mh(scaled_sse,
                   lambda(matrix,motif):proposal(matrix,motif),
                   (matrix,motif),
-                  iterations=500000,
-                  every=100)
+                  iterations=iterations,
+                  every=100,verbose=True)
 
 def mr_system_mh(alphas,G=100000.0,n=16,L=10):
-    scale = 1000 #lower means less stringent
+    scale = 10000 #lower means less stringent
     matrix = [[0,0,0,0] for i in range(L)]
     motif = [random_site(L) for i in range(n)]
     scaled_sse = lambda matrix,motif:(sse(matrix,motif,alphas,G,n))*scale
     return mh(lambda (matrix,motif):exp(-scaled_sse(matrix,motif)),
               lambda (matrix,motif):propose(matrix,motif),
               (matrix,motif),
-              iterations=1000000,
-              every=1000)
+              iterations=100000,
+              every=1000,verbose=True)
+
+
+def mr_system_sa(alphas,init_system=None,G=100000.0,n=16,L=10,
+              sse_epsilon=0.0001,proposal=propose,scale=1000,
+              iterations=10000,return_trajectory=False):
+    if init_system is None:
+        matrix = [[0,0,0,0] for i in range(L)]
+        motif = [random_site(L) for i in range(n)]
+    else:
+        matrix,motif = init_system
+    scaled_sse = lambda(matrix,motif):sse(matrix,motif,alphas,G,n)*scale
+    return anneal(scaled_sse,
+                  lambda(matrix,motif):proposal(matrix,motif),
+                  (matrix,motif),
+                  iterations=iterations,
+                  stopping_crit = sse_epsilon*scale,
+                  return_trajectory=return_trajectory)
+
 
 def alpha_ladder_exp():
     total_alphas = [1.0/2**k for k in myrange(0,10,.5)]
@@ -128,3 +162,37 @@ def hold_motif_constant_exp():
     return [evolve_trajectory(ic) for ic in verbose_gen(ics)]
     
 print "loaded mr_systems"
+
+def mh_motif(n,w,desired_ic,epsilon,scale=10,iterations=10000):
+    """Find a motif satisfying desired_ic +/- epsilon by mh sampling"""
+    motif = [random_site(w) for i in range(n) ]
+    f = lambda m:exp(-abs(desired_ic-motif_ic(m))*scale)
+    proposal = mutate_motif
+    return mh(f,proposal,motif,iterations=iterations)
+
+def mh_control_motif(motif,epsilon=0.1):
+    n = len(motif)
+    w = len(motif[1])
+    desired_ic = motif_ic(motif)
+    return mh_motif(n,w,desired_ic,epsilon,scale=20)[-1]
+    
+def mh_motif_phase_transition_fig(filename=None):
+    rc('text',usetex=True)
+    c = 5
+    for s in range(1,51):
+        print s
+        plt.scatter(s,mean(map(lambda m:(motif_ic(m)-c)**2,mh_motif(16,10,c,.1,scale=s,iterations=5000))))
+    plt.semilogy()
+    plt.xlabel(r"$\alpha$")
+    plt.ylabel(r"$<(IC(M)-c)^2>$ (bits)$^2$")
+    maybesave(filename)
+    
+def sa_motifs_vs_controls_gini_comparison():
+    sa_motifs = [mr_system_sa([.5/16 for i in range(16)],scale=1,
+                           iterations=1000000,return_trajectory=False)[1]
+              for i in verbose_gen(range(100))][:20]
+    motif_ginis = map(motif_gini,sa_motifs)
+    replicates = 100
+    control_ginis = [[motif_gini(control_motif(motif,epsilon=0.1))
+                      for __ in verbose_gen(xrange(replicates))]
+                     for motif in verbose_gen(sa_motifs[:20])]
