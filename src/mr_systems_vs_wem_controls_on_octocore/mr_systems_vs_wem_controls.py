@@ -5,7 +5,7 @@ method to control motifs sampled through the same process
 
 import sys
 sys.path.append("../../results")
-
+sys.path.append("..")
 from mr_systems import mr_systems
 from weighted_ensemble_method import *
 from m_r_systems import linf_norm,propose,sse
