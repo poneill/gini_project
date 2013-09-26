@@ -36,7 +36,7 @@ def main_exp():
 print "loaded"
 
 if __name__ == "__main__":
-    batch = sys.argv[1]
+    batch = int(sys.argv[1])
     batch_systems = mr_systems[batch*3:(batch+1)*3]
     mr_ics = [motif_ic(motif) for matrix,motif in batch_systems]
     wem_ensembles = [[sample_motifs_with_dirty_bits(length=10,num_sites=16,ic=ic,
