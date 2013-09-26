@@ -85,23 +85,31 @@ def sse(matrix,motif,alphas,G,n):
     ps = [site_prop/Z for site_prop in site_propensities]
     return sum([(p-alpha)**2 for p,alpha in zip(ps,alphas)])
 
+def linf_norm(matrix,motif,alphas,G,n):
+    Zb = Z_background(matrix,G)
+    site_propensities = [exp(-beta*score(matrix,site,ns=ns_binding))
+                         for site in motif]
+    Z= Zb + sum(site_propensities)
+    ps = [site_prop/Z for site_prop in site_propensities]
+    return max([abs(p-alpha) for p,alpha in zip(ps,alphas)])
+
 def mr_system(alphas,init_system=None,G=100000.0,n=16,L=10,
-              sse_epsilon=0.0001,use_annealing=False,proposal=propose,scale=1000,
+              sse_epsilon=0.0001,use_annealing=True,proposal=propose,scale=1000,
               iterations=10000):
     if init_system is None:
         matrix = [[0,0,0,0] for i in range(L)]
         motif = [random_site(L) for i in range(n)]
     else:
         matrix,motif = init_system
-    scaled_sse = lambda(matrix,motif):exp((sse(matrix,motif,alphas,G,n))*-scale)
-    algorithm = anneal if use_annealing else mh
     if use_annealing:
+        scaled_sse = lambda(matrix,motif):((sse(matrix,motif,alphas,G,n))*scale)
         return anneal(scaled_sse,
                       lambda(matrix,motif):proposal(matrix,motif),
                       (matrix,motif),
                       iterations=iterations,
-                      stopping_crit = sse_epsilon*scale,return_trajectory=False)
+                      stopping_crit = sse_epsilon*scale)
     else:
+        scaled_sse = lambda(matrix,motif):exp((sse(matrix,motif,alphas,G,n))*-scale)
         return mh(scaled_sse,
                   lambda(matrix,motif):proposal(matrix,motif),
                   (matrix,motif),

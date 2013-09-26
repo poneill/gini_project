@@ -72,12 +72,13 @@ def test_upsample():
     print mu1,sigma1
 
 
-def weighted_ensemble(q, f, init_states, bins, M, tau, timesteps):
+def weighted_ensemble(q, f, init_states, bins, M, tau, timesteps,verbose=2):
     Q = lambda (state,p):(q(state),p)
     F = lambda (state,p):(f(state),p)
     n = float(len(init_states))
-    binned_states = [[(state,1/n) for state in init_states if b0 <= f(state) < b1]
-              for b0,b1 in pairs(bins)]
+    # binned_states = [[(state,1/n) for state in init_states if b0 <= f(state) < b1]
+    #           for b0,b1 in pairs(bins)]
+    binned_states = [[(state,1/n)] for state in init_states]
     #print "total prob:",total_prob(binned_states)
     t = 0
     #history = []
@@ -107,7 +108,10 @@ def weighted_ensemble(q, f, init_states, bins, M, tau, timesteps):
             elif len(binned_state) > M:
                 binned_states[bs_index] = downsample(binned_states[bs_index],M)
         probs = map(lambda bs:sum(p for s,p in bs),binned_states)
-        print t,probs
+        if verbose == 2:
+            print t,probs
+        elif verbose == 1:
+            print sum(p > 0 for p in probs)
     return binned_states
 
 def random_motif_with_dirty_bits(length,num_sites):
@@ -164,10 +168,13 @@ def sample_motifs_with_dirty_bits(length,num_sites,ic,epsilon):
     timesteps = 75
     M = 100
     init_states = [random_motif_with_dirty_bits(10,16) for i in range(M)]
-    results = weighted_ensemble(mutate_motif_with_dirty_bits,
-                                motif_ic_with_dirty_bits,
-                                init_states,
-                                bins, M, tau, timesteps)
+    try:
+        results = weighted_ensemble(mutate_motif_with_dirty_bits,
+                                    motif_ic_with_dirty_bits,
+                                    init_states,
+                                    bins, M, tau, timesteps)
+    except ValueError:
+        return sample_motif_with_dirty_bits(length,num_sites,ic,epsilon)
     motifs,ps = transpose(concat(results[-3:-1]))
     motif, ics = inverse_cdf_sample(motifs,normalize(ps))
     return motifs
