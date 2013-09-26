@@ -173,9 +173,9 @@ def sample_motifs_with_dirty_bits(length,num_sites,ic,epsilon):
                                     motif_ic_with_dirty_bits,
                                     init_states,
                                     bins, M, tau, timesteps)
+        motifs,ps = transpose(concat(results[-3:-1]))
     except ValueError:
         return sample_motif_with_dirty_bits(length,num_sites,ic,epsilon)
-    motifs,ps = transpose(concat(results[-3:-1]))
     motif, ics = inverse_cdf_sample(motifs,normalize(ps))
     return motifs
     
