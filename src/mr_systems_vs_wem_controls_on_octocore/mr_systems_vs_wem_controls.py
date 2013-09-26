@@ -43,6 +43,6 @@ if __name__ == "__main__":
                                                     epsilon=0.1)
                       for i in verbose_gen(range(30))]
                      for ic in verbose_gen(mr_ics)]
-    with open("wem_ensembles_%s.pkl" % batch) as f:
+    with open("wem_ensembles_%s.pkl" % batch,'w') as f:
         cpickle.dump(wem_ensembles,f)
 
