@@ -73,12 +73,11 @@ def test_upsample():
     print mu1,sigma1
 
 
-def weighted_ensemble(q, f, init_states, bins, M, tau, timesteps,verbose=2,final_bin_index=None):
+def weighted_ensemble(q, f, init_states, bins, M, tau, timesteps,final_bin_index=None,verbose=2):
     Q = lambda (state,p):(q(state),p)
     F = lambda (state,p):(f(state),p)
     n = float(len(init_states))
-    if final_bin_index:
-        n = mp.mpf(n)
+    n = mp.mpf(n)
     binned_states = [[(state,1/n)] for state in init_states]
     #print "total prob:",total_prob(binned_states)
     t = 0
@@ -114,7 +113,7 @@ def weighted_ensemble(q, f, init_states, bins, M, tau, timesteps,verbose=2,final
         if verbose == 2:
             print t,probs
         elif verbose == 1:
-            print sum(p > 0 for p in probs)
+            print t,sum(p > 0 for p in probs),len(bins)
         if final_bin_index and binned_states[final_bin_index]:
             return binned_states
     return binned_states
@@ -167,23 +166,25 @@ def sample_motifs(length,num_sites,ic,epsilon):
     motifs,ps = transpose(concat(results[-3:-1]))
     return inverse_cdf_sample(motifs,normalize(ps))
 
-def sample_motifs_with_dirty_bits(length,num_sites,ic,epsilon,inv_cdf=True,wait_indefinitely=False):
+def sample_motifs_with_dirty_bits(length,num_sites,ic,epsilon,inv_cdf=True,timesteps = 100,wait_indefinitely=False,init_states=None):
+    print "timesteps:",timesteps
     bins = [-10] + myrange(0,ic,epsilon) + [ic,ic + epsilon]+ [ic + 10]
     final_bin_index = None if not wait_indefinitely else -2
     tau = 1
-    timesteps = 100
     M = 100
-    init_states = [random_motif_with_dirty_bits(length,num_sites)
-                   for i in range(M)]
+    if init_states == None:
+        init_states = [random_motif_with_dirty_bits(length,num_sites)
+                       for i in range(M)]
+    results = weighted_ensemble(mutate_motif_with_dirty_bits,
+                                motif_ic_with_dirty_bits,
+                                init_states,
+                                bins, M, tau, timesteps,
+                                final_bin_index=final_bin_index,verbose=1)
     try:
-        results = weighted_ensemble(mutate_motif_with_dirty_bits,
-                                    motif_ic_with_dirty_bits,
-                                    init_states,
-                                    bins, M, tau, timesteps,final_bin_index=final_bin_index)
         motifs,ps = transpose(concat(results[-3:-1]))
     except ValueError:
-        return sample_motifs_with_dirty_bits(length,num_sites,ic,epsilon,
-                                             wait_indefinitely)
+        motifs,ps = transpose(concat(results))
+        return sample_motifs_with_dirty_bits(length,num_sites,ic,epsilon,inv_cdf,timesteps, wait_indefinitely,init_states=motifs)
     if inv_cdf:
         motif, ics = inverse_cdf_sample(motifs,normalize(ps))
         return motif
@@ -195,8 +196,8 @@ def match_motif(motif,epsilon=0.1,inv_cdf=True,wait_indefinitely=False):
     length = len(motif[0])
     num_sites = len(motif)
     ic = motif_ic(motif)
-    return sample_motifs_with_dirty_bits(length,num_sites,ic,epsilon,inv_cdf,
-                                         wait_indefinitely)
+    return sample_motifs_with_dirty_bits(length,num_sites,ic,epsilon,inv_cdf=inv_cdf,
+                                         wait_indefinitely=wait_indefinitely)
     
 def wem_control_motif(motif,epsilon=0.1):
     num_sites = len(motif)
