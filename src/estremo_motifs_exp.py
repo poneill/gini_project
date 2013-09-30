@@ -1,5 +1,6 @@
 from utils import *
 from weighted_ensemble_method import *
+from motifs import *
 import sys
 sys.path.append("../results/coevolved_motifs/estremo_motifs")
 from estremo_motifs import estremo_motifs
@@ -40,17 +41,30 @@ def estremo_motif_exp(filename=None):
     with open("../results/estremo_controls.pkl",'w') as f:
         cPickle.dump(controls,f)
 
+def procrusteanate_motifs(motifs):
+    procrustean_motifs = []
+    for dim,motif in zip(dims,motifs):
+        num_sites,length = dim
+        if num_sites <= 25:
+            procrustean_motifs.append(motif)
+        else:
+            num_motifs = num_sites/25
+            for i in range(num_motifs):
+                new_motif = motif[:]
+                random.shuffle(new_motif)
+                procrustean_motifs.append(new_motif[:25])
+    return procrustean_motifs
+
 def ecoli_motif_exp():
-    ecoli_motifs = [getattr(Escherichia_coli,tf) for tf in Escherichia_coli.tfs]
+    ecoli_motifs = [getattr(Escherichia_coli,tf) for tf in Escherichia_coli.tfs
+                    if len(getattr(Escherichia_coli,tf)) <= 100]
     dim = lambda m:(len(m),len(m[0]))
     dims = map(dim,ecoli_motifs)
-    cutoff = 10
-    sorted_js = sorted_indices(dims)
     ecoli_controls = [match_motif(motif,inv_cdf=False)
-                      for motif in rslice(ecoli_motifs,sorted_js)[:cutoff]]
+                      for motif in verbose_gen(ecoli_motifs)]
     ecoli_ginis = map(motif_gini,ecoli_motifs)
     ecoli_control_ginis = mmap(motif_gini,ecoli_controls)
     plt.boxplot(ecoli_control_ginis)
-    plt.scatter(range(1,cutoff+1),rslice(ecoli_ginis,sorted_js)[:10])
+    plt.scatter(range(1,len(ecoli_ginis)+1),ecoli_ginis)
     with open("../results/ecoli_controls.pkl",'w') as f:
         cPickle.dump(econli_controls,f)

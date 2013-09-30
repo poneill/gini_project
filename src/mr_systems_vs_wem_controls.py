@@ -4,7 +4,7 @@ method to control motifs sampled through the same process
 """
 
 from weighted_ensemble_method import *
-from m_r_systems import linf_norm,propose,sse
+from m_r_systems import linf_norm,propose,sse,mr_system
 from utils import myrange
 
 def sample_mr_system(alphas,G=100000.0,n=16,L=10):
@@ -22,11 +22,28 @@ def sample_mr_system(alphas,G=100000.0,n=16,L=10):
 def main_exp():
     L = 10
     num_sites = 16
+    alphas = [0.5/16]*16
     mr_systems = [mr_system(alphas,use_annealing=True,scale=1,iterations=500000,
-                             sse_epsilon=0.0001)[-1] for i in range(30)]
-    mr_ics = [motif_ic(motif) for matrix,motif in mr_systems]
-    wem_ensembles = [[sample_motifs_with_dirty_bits(length=10,num_sites=16,ic=ic,
-                                                   epsilon=0.1)
-                      for i in verbose_gen(range(30))]
-                     for ic in verbose_gen(mr_ics)]
+                             sse_epsilon=0.0001)[-1] for i in range(10)]
+    mr_ics = map(motif_ic,mr_systems)
+    mr_ginis = map(motif_gini,mr_systems)
+    init_states = [random_motif_with_dirty_bits(L,num_sites)]
+    ic = 12
+    M = 100
+    tau = 1
+    timesteps = 100
+    epsilon = 0.1
+    bins = [-10] + myrange(0,ic,epsilon) + [ic,ic + epsilon]+ [ic + 10]
+    control_motifs = concat([weighted_ensemble(mutate_motif_with_dirty_bits,
+                                       motif_ic_with_dirty_bits,
+                                       init_states,
+                                       bins, M, tau, timesteps,
+                                       final_bin_index=None,verbose=1)
+                             for i in range(5)])
+    control_ics = map(lambda ((m,ics),p):motif_ic(m),concat(control_motifs))
+    control_ginis = map(lambda ((m,ics),p):motif_gini(m),concat(control_motifs))
+    binned_controls = [[gini for ic,gini in zip(control_ics,control_ginis)
+                        if abs(ic-mr_ic) < 0.1]
+                       for mr_ic in mr_ics]
+    
 print "loaded"
