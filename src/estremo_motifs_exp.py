@@ -63,8 +63,9 @@ def ecoli_motif_exp():
     ecoli_controls = [match_motif(motif,inv_cdf=False)
                       for motif in verbose_gen(ecoli_motifs)]
     ecoli_ginis = map(motif_gini,ecoli_motifs)
+    ecoli_ics = map(motif_ic,ecoli_motifs)
     ecoli_control_ginis = mmap(motif_gini,ecoli_controls)
-    plt.boxplot(ecoli_control_ginis)
-    plt.scatter(range(1,len(ecoli_ginis)+1),ecoli_ginis)
+    plt.boxplot(ecoli_control_ginis,positions=ecoli_ics)
+    plt.scatter(ecoli_ics,ecoli_ginis)
     with open("../results/ecoli_controls.pkl",'w') as f:
         cPickle.dump(econli_controls,f)

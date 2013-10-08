@@ -45,5 +45,15 @@ def main_exp():
     binned_controls = [[gini for ic,gini in zip(control_ics,control_ginis)
                         if abs(ic-mr_ic) < 0.1]
                        for mr_ic in mr_ics]
+
+def motif_prob_scan_exp():
+    L = 10
+    num_sites = 16
+    alphas = [0.5/16]*16
+    verbose=False
+    mr_systems = [[mr_system(alphas,use_annealing=True,scale=1,iterations=5000000,
+                             sse_epsilon=0.0001,motif_prob=alpha,verbose=verbose)[-1]
+                   for i in range(5)]
+                  for alpha in myrange(0.3,1,0.1)]
     
 print "loaded"

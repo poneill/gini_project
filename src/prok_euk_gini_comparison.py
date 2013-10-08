@@ -15,4 +15,6 @@ fly_ics = map(motif_ic,fly_motifs)
 
 plt.scatter(ecoli_ics,ecoli_ginis)
 plt.scatter(fly_ics,fly_ginis,color='g')
+plt.xlabel("IC")
+plt.ylabel("Gini coefficient")
 plt.show()

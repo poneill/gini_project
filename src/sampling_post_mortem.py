@@ -47,6 +47,6 @@ def plot_beneficial_mutation_exp():
     """Plot several trajectories of beneficial mutation experiment"""
     trajectories = 10
     for _ in verbose_gen(range(trajectories)):
-        history = beneficial_mutation_exp(col_length=100)
+        history = beneficial_mutation_exp(col_length=20)
         plt.plot(*transpose(history))
     plt.show()

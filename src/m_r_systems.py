@@ -40,10 +40,10 @@ def mutate_matrix(matrix):
     return [[matrix[i][j]+r*(i==r_i)*(j==r_j)
              for j in range(4)] for i in range(L)]
     
-def propose(matrix,motif):
+def propose(matrix,motif,motif_prob=0.5):
     """Return a candidate (S,R) system by mutating either the motif or
     the matrix"""
-    if random.random() < 0.5:
+    if random.random() < motif_prob:
         return matrix,mutate_motif(motif)
     else:
         return mutate_matrix(matrix),motif
@@ -94,8 +94,9 @@ def linf_norm(matrix,motif,alphas,G,n):
     return max([abs(p-alpha) for p,alpha in zip(ps,alphas)])
 
 def mr_system(alphas,init_system=None,G=100000.0,n=16,L=10,
-              sse_epsilon=0.0001,use_annealing=True,proposal=propose,scale=1000,
-              iterations=10000):
+              sse_epsilon=0.00000001,use_annealing=True,scale=1000,
+              iterations=10000,motif_prob=0.5,verbose=False):
+    proposal = lambda matrix,motif:propose(matrix,motif,motif_prob=motif_prob)
     if init_system is None:
         matrix = [[0,0,0,0] for i in range(L)]
         motif = [random_site(L) for i in range(n)]
@@ -107,7 +108,7 @@ def mr_system(alphas,init_system=None,G=100000.0,n=16,L=10,
                       lambda(matrix,motif):proposal(matrix,motif),
                       (matrix,motif),
                       iterations=iterations,
-                      stopping_crit = sse_epsilon*scale)
+                      stopping_crit = sse_epsilon*scale,verbose=verbose)
     else:
         scaled_sse = lambda(matrix,motif):exp((sse(matrix,motif,alphas,G,n))*-scale)
         return mh(scaled_sse,
