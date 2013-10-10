@@ -59,7 +59,77 @@ def weighted_ic(seqs_ps,L):
             base_index = "ACGT".index(b)
             freq_table[i][base_index] += p
     return 2*L - sum(map(h,freq_table))
-    
 
-    
+def random_matrix(L,sigma):
+    return [[random.gauss(0,sigma) for i in range(4)] for j in range(L)]
+
+def matrix_variance(matrix,centered=True):
+    return sum(mean([x**2 for x in row]) - centered*mean(row)**2
+               for row in matrix)
+
+def matrix_variance_check(matrix):
+    return sum(3/16.0*sum(matrix[i][b]**2 for b in range(4)) -
+               1/16.0*sum(matrix[i][b]*matrix[i][c] for b in range(4)
+                          for c in range(4) if not b == c)
+               for i in range(len(matrix)))
+
+def variance_exp(independent_matrices=False):
+    trials = 100
+    G = 10000
+    variance_data = []
+    for trial in verbose_gen(xrange(trials)):
+        L = random.randrange(1,100)
+        sigma = random.random() * 10
+        genome = random_site(G)
+        if not independent_matrices:
+            matrix = random_matrix(L,sigma)
+            eps = [score(matrix,seq,ns=False) for seq in sliding_window(genome,L)]
+        else:
+            eps = [score(random_matrix(L,sigma),seq,ns=False)
+                   for seq in sliding_window(genome,L)]
+        variance_data.append((variance(eps),L,sigma))
+    return variance_data
+        
+def plot_var_data(var_data):
+    plt.scatter(*transpose([(3/4.0*L*sigma**2,obs) for obs,L,sigma in var_data]))
+    max_obs = max(map(first,var_data))
+    plt.plot([0,max_obs],[0,max_obs])
+    plt.plot([0,max_obs],[0,4/3.0*max_obs])
+
+def variance_underprediction_caused_by_using_one_matrix():
+    dependent_data = variance_exp()
+    independent_data = variance_exp(independent_matrices=True)
+    plot_var_data(dependent_data)
+    plot_var_data(independent_data)
+    plt.show()
+
+def expectation_of_Z_exp():
+    L = 10
+    G = 10000
+    sigma = 2
+    matrix = random_matrix(L,sigma)
+    genome = random_site(G+L-1)
+    eps = [score(matrix,seq,ns=False)
+           for seq in sliding_window(genome,L)]
+    print "normality test:",normaltest(eps)
+    print "eps variance:",variance(eps)
+    print "predicted eps variance:",(3/4.0*L*sigma**2)
+    assert(len(eps) == G)
+    print "eps variance w/ beta:",variance(map(lambda x:x*-beta,eps))
+    Sigma_sq = 3/4.0*L*sigma**2*beta**2
+    print "predicted eps variance w/ beta:",(Sigma_sq)
+    Z = sum(exp(-beta*ep) for ep in eps)
+    expected_Z = G*exp((Sigma_sq)/2)
+    return Z,expected_Z
+
+def lognormal_test():
+    mu = 1
+    sigma = 2
+    c = 0.1
+    xs = [random.gauss(mu,sigma) for _ in xrange(10000)]
+    ys = [exp(c*x) for x in xs]
+    y_bar = mean(ys)
+    y_pred = exp(c*mu+c**2*sigma**2/2)
+    return y_bar,y_pred
+
 print "loaded"
