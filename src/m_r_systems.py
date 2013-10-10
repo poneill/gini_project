@@ -9,7 +9,7 @@ Output: An M-R system whose SSE is less than epsilon.
 """
 import random
 from utils import product,random_site,anneal,mh,show,mutate_motif
-from math import exp
+from math import exp,log
 from matplotlib import rc
 
 beta = 1.61
