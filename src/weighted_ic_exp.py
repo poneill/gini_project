@@ -139,6 +139,22 @@ def mean_eps_exp(G,L,sigma):
     mean_energy = sum(p*ep for p,ep in zip(ps,eps))
     return min(eps),mean_energy
 
+def mean_eps_exp2(mu,sigma,n):
+    eps = [random.gauss(mu,sigma) for i in range(n)]
+    Z = sum(exp(-beta*ep) for ep in eps)
+    ps = [exp(-beta*ep)/Z for ep in eps]
+    mean_ep = sum(ep*p for ep,p in zip(eps,ps))
+    Z_pred = n*exp(-beta*mu+beta**2*sigma**2/2.0)
+    db = 0.01
+    dZ_pred = -(n*exp(-(beta + db)*mu+(beta+db)**2*sigma**2/2.0) - Z_pred)/db
+    print "Z:",Z,"Z_pred:",Z_pred
+    pred_mean_ep = (-n*exp(-beta*mu+(beta*sigma)**2/2.0)*(-mu+beta*sigma**2))/Z_pred
+    print "mean ep:",mean_ep,"pred_mean_ep:",pred_mean_ep,"dZ_pred",dZ_pred
+    return pred_mean_ep,mean_ep
+    
+    
+    
+
 def logZ(G,L,sigma):
     matrix = [[gauss(0,sigma) for i in range(4)] for j in range(L)]
     genome = random_site(G-L+1)
