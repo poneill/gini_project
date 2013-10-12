@@ -1,6 +1,7 @@
 from m_r_systems import *
 from utils import *
 from random import gauss
+from scipy.stats import norm
 
 def rfreq_rseq_exp(L,G,sigma):
     matrix = [[gauss(0,sigma) for i in range(4)] for j in range(L)]
@@ -63,6 +64,10 @@ def weighted_ic(seqs_ps,L):
 def random_matrix(L,sigma):
     return [[random.gauss(0,sigma) for i in range(4)] for j in range(L)]
 
+def matrix_mean(matrix):
+    return sum(mean([x for x in row])
+               for row in matrix)
+
 def matrix_variance(matrix,centered=True):
     return sum(mean([x**2 for x in row]) - centered*mean(row)**2
                for row in matrix)
@@ -122,14 +127,153 @@ def expectation_of_Z_exp():
     expected_Z = G*exp((Sigma_sq)/2)
     return Z,expected_Z
 
-def lognormal_test():
-    mu = 1
-    sigma = 2
-    c = 0.1
+def mean_eps_exp(G,L,sigma):
+    """
+    Conclusion: <ep> ~= min(eps) for sigma >>1
+    """
+    matrix = [[gauss(0,sigma) for i in range(4)] for j in range(L)]
+    genome = random_site(G-L+1)
+    eps = [score(matrix,seq,ns=False) for seq in sliding_window(genome,L)]
+    Z = sum(exp(-beta*ep) for ep in eps)
+    ps = [exp(-beta*ep)/Z for ep in eps]
+    mean_energy = sum(p*ep for p,ep in zip(ps,eps))
+    return min(eps),mean_energy
+
+def logZ(G,L,sigma):
+    matrix = [[gauss(0,sigma) for i in range(4)] for j in range(L)]
+    genome = random_site(G-L+1)
+    eps = [score(matrix,seq,ns=False) for seq in sliding_window(genome,L)]
+    matrix_mu = matrix_mean(matrix)
+    matrix_sigmasq = matrix_variance(matrix)
+    Z = sum(exp(-beta*ep) for ep in eps)
+    return log(Z)
+
+def logZ_exp(trials=100):
+    # Fenton-Wilkinson method: 
+    # ep~N(0,3/4*L*sigma**2), so assume
+    # logZ ~ G*N(0,3/4*L*sigma**2)
+    G = 10000
+    L = 10
+    sigma = 1
+    matrix = [[gauss(0,sigma) for i in range(4)] for j in range(L)]
+    matrix_mu = matrix_mean(matrix)
+    matrix_sigmasq = matrix_variance(matrix)
+    Xss = [[score(matrix,seq,ns=False)
+                  for seq in sliding_window(random_site(G-L+1),L)]
+           for i in verbose_gen(range(trials))]
+    Yss = [[exp(-beta*ep) for ep in Xs] for Xs in Xss]
+    logZs = [log(sum(Ys))
+             for Ys in Yss]
+    #xs = [(beta*rlognorm(matrix_mu,matrix_sigmasq)) for t in range(trials)]
+    #qqplot(logZs,xs)
+    pred = exp((-beta)*matrix_mu+(beta**2)*matrix_sigmasq/2)
+    print pred,mean(concat(Yss))
+    plt.boxplot(logZs)
+    plt.plot([0,1],[pred,pred])
+    return logZs,pred
+
+def rlognorm(mu,sigmasq):
+    return exp(random.gauss(mu,sqrt(sigmasq)))
+
+def dlognorm(x,mu,sigma):
+    return 1/(x*sqrt(2*pi)*sigma)*exp(-(log(x)-0)**2/(2*sigma**2))
+
+def h_logZ_exp(G,L,sigma):
+    """
+    Conclusion: posterior entropy (in nats) == beta*mean_energy+log(Z)
+    This result (really a stat mech identity) is a key step in
+    predicting post ent.  This implies that tractable predictions for
+    mean_energy, logZ are crucial.
+    """
+    matrix = [[gauss(0,sigma) for i in range(4)] for j in range(L)]
+    genome = random_site(G-L+1)
+    eps = [score(matrix,seq,ns=False) for seq in sliding_window(genome,L)]
+    Z = sum(exp(-beta*ep) for ep in eps)
+    ps = [exp(-beta*ep)/Z for ep in eps]
+    assert(abs(sum(ps) - 1) < 10**-10)
+    # return entropy in nats, log(Z)
+    mean_energy = sum(p*ep for p,ep in zip(ps,eps))
+    H = h(ps)*log(2) #entropy in nats
+    H2 = -sum(p*(-beta*ep-log(Z)) for p,ep in zip(ps,eps))
+    H3 = sum(p*(beta*ep)+p*log(Z) for p,ep in zip(ps,eps))
+    H4 = beta*mean_energy + sum(p*log(Z) for p in ps)
+    Hfinal = beta*mean_energy + log(Z)
+    print H,H2,H3,H4,Hfinal
+    #return (h(ps)*log(2),beta*mean_energy+log(Z))
+    return (h(ps)*log(2),beta*mean_energy+log(Z))
+
+def predict_post_ent(G,L,sigma,matrix_stats=False):
+    matrix = [[gauss(0,sigma) for i in range(4)] for j in range(L)]
+    genome = random_site(G-L+1)
+    eps = [score(matrix,seq,ns=False) for seq in sliding_window(genome,L)]
+    Z = sum(exp(-beta*ep) for ep in eps)
+    ps = [exp(-beta*ep)/Z for ep in eps]
+    H = h(ps)*log(2) #entropy in nats
+    matrix_mu = 0 if not matrix_stats else matrix_mean(matrix)
+    matrix_sigma = 3/4.0*L*sigma**2 if not matrix_stats else sqrt(matrix_variance(matrix))
+    pred_min_ep = matrix_mu + norm.ppf(1/float(G+1))*matrix_sigma
+    pred_logZ = log(G) + -beta*matrix_mu + (beta*matrix_sigma)**2/2.0
+    print "---"
+    print "G:",G,"L:",L,"sigma:",sigma
+    print "logZ:",pred_logZ,log(Z)
+    mean_energy = sum(p*ep for p,ep in zip(ps,eps))
+    print "energy:","mean:",mean_energy,"min:",min(eps),"pred_min:",pred_min_ep
+    pred_H = beta*pred_min_ep + pred_logZ
+    print "H:",pred_H,H
+    return pred_H,H
+
+    
+    
+def lognormal_test(mu=1,sigma=2,c=1):
     xs = [random.gauss(mu,sigma) for _ in xrange(10000)]
     ys = [exp(c*x) for x in xs]
     y_bar = mean(ys)
     y_pred = exp(c*mu+c**2*sigma**2/2)
     return y_bar,y_pred
+
+def powersum_test_ref(mu=1,sigma=2,n=10000):
+    logz = log(sum(exp(random.gauss(mu,sigma)) for _ in xrange(n)))
+    logz_pred = log(n) + mu+sigma**2/2.0
+    return logz_pred,logz
+
+def powersum_test(mu=1,sigma=2,n=10000):
+    acc = 0
+    for _ in xrange(n):
+        acc += exp(random.gauss(mu,sigma))
+    logz = log(acc)
+    logz_pred = log(n) + mu+sigma**2/2.0
+    return logz_pred,logz
+
+def plot_powersum_test(G=10000,trials=100):
+    mu_range = 5 #[-mu_range,mu_range]
+    sigma_range = 10 #[0,sigma_range]
+    psums = [powersum_test(0,#random.random()*mu_range*2,#-mu_range,
+                           10,#random.random()*sigma_range
+                           G)
+             for i in verbose_gen(xrange(trials))]
+    normalized_psums = [(pred,obs/pred) for pred,obs in psums]
+    plt.scatter(*transpose(normalized_psums))
+    m = max(concat(map(list,psums)))
+    plt.plot([0,m],[0,m])
+    plt.xlabel("Predicted LogZ")
+    plt.ylabel("Experimental LogZ")
+    return normalized_psums
+
+def metaplot_powersum_test():
+    """
+    Does approximation converge as G -> \infty?
+    """
+    all_psums = []
+    for i in range(1,4+1):
+        print "starting on",i
+        plt.subplot(2,2,i)
+        all_psums.append(plot_powersum_test(G=1000*int(10**(i-1)),trials=10000/int(10**(i-1))))
+    plt.show()
+    return all_psums
+
+def sum_lognormal(mu,sigma,n):
+    xs = [random.gauss(mu,sigma) for _ in xrange(n)]
+    y = sum([exp(x) for x in xs])
+    
 
 print "loaded"
